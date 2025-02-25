@@ -42,7 +42,7 @@ spec:
         - name: N8N_PROTOCOL
           value: "https"
         - name: WEBHOOK_TUNNEL_URL
-          value: "https://n8n.example.com/"
+          value: "https://n8n.neotech-consulting.com/"
         ports:
         - containerPort: 5678
 ---
