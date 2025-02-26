@@ -1,50 +1,68 @@
-apiVersion: v1
-kind: Secret
-metadata:
-  name: postgres-secret
-  namespace: n8n
-type: Opaque
-data:
-  POSTGRES_PASSWORD: cGFzc3dvcmQ=  # Base64 de "password"
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres
-  namespace: n8n
+  name: n8n
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: postgres
+      app: n8n
   template:
     metadata:
       labels:
-        app: postgres
+        app: n8n
     spec:
       containers:
-      - name: postgres
-        image: postgres:14
-        env:
-        - name: POSTGRES_DB
-          value: n8n
-        - name: POSTGRES_USER
-          value: n8n
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: postgres-secret
-              key: POSTGRES_PASSWORD
-        ports:
-        - containerPort: 5432
+        - name: n8n
+          image: n8nio/n8n:latest
+          ports:
+            - containerPort: 5678
+          env:
+            - name: N8N_PORT
+              value: "5678"
+            - name: N8N_PROTOCOL
+              value: "http"
+          volumeMounts:
+            - name: n8n-data
+              mountPath: /home/node/.n8n
+      volumes:
+        - name: n8n-data
+          persistentVolumeClaim:
+            claimName: n8n-pvc
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres
-  namespace: n8n
+  name: n8n-service
 spec:
-  ports:
-  - port: 5432
   selector:
-    app: postgres
+    app: n8n
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5678
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: n8n-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  rules:
+    - host: n8n.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: n8n-service
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - n8n.example.com
+      secretName: n8n-tls
