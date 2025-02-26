@@ -67,7 +67,7 @@ spec:
         - n8n.neotech-consulting.com
       secretName: n8n-tls
 
------------------------------------
+---
 
 apiVersion: v1
 kind: PersistentVolumeClaim
